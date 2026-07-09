@@ -1,4 +1,4 @@
-## 📈 Simulador de Juros Compostos
+# 📈 Simulador de Juros Compostos
 
 Um simulador financeiro modular desenvolvido em Python para calcular a evolução de investimentos baseados em juros compostos. O projeto aplica conceitos rigorosos de **Orientação a Objetos (POO)** e segue uma arquitetura inspirada no padrão MVC (Separação de Responsabilidades), garantindo que a lógica de cálculo, armazenamento de dados e exibição na tela fiquem em camadas totalmente independentes.
 
@@ -34,38 +34,3 @@ juros_composto/
 │   └── simuladorfinanceiro.py # Lógica dos cálculos e simulação
 │
 └── __main__.py               # Ponto de entrada (Orquestrador do sistema)
-
-💻 Como Rodar o Projeto
-Pré-requisitos
-
-    Ter o Python 3.x instalado no seu computador.
-
-Passo a Passo
-
-    Clone o repositório:
-
-Bash
-
-git clone [https://github.com/Luizmachado2001/juros_composto.git](https://github.com/Luizmachado2001/juros_composto.git)
-
-    Navegue até a pasta do projeto:
-
-Bash
-
-cd juros_composto
-
-    Execute o sistema através do módulo principal:
-
-Bash
-
-python __main__.py
-
-🛠️ Tecnologias Utilizadas
-
-    Python 3 (Sem dependências externas, utilizando apenas recursos nativos da linguagem).
-
-    Pylance/MyPy para checagem de tipos estáticos (Type Hinting).
-
-🧑‍💻 Autor
-
-    Luiz Machado - GitHub

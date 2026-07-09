@@ -64,9 +64,10 @@ class SimuladorFinanceiro():
 
         anos = int(meses / 12)
         resto = meses % 12
-        
+
         print(35 * "-")
         print("🎯 ALVO ATINGIDO!")
         print(f"Tempo total: {anos} ano(s) e {resto} mês(es)")
         print(35 * "-")
+        print()
         return meses

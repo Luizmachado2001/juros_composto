@@ -67,7 +67,11 @@ class SimuladorFinanceiro():
 
         print(35 * "-")
         print("🎯 ALVO ATINGIDO!")
-        print(f"Tempo total: {anos} ano(s) e {resto} mês(es)")
+        if resto >= 1:
+            print(f"Tempo total: {anos} ano(s) e {resto} mês(es)")
+        else:
+            print(f"Tempo total: {anos} ano(s)")
+
         print(35 * "-")
         print()
         return meses

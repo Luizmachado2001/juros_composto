@@ -1,7 +1,7 @@
-from src import Cenario, SimuladorFinanceiro
+from .src import Cenario, SimuladorFinanceiro
 
 def main():
-    primeiro = Cenario(1000, 30, 24)
+    primeiro = Cenario(1000, 1.2, 12)
     
     SimuladorFinanceiro.tempoAteAlvo(primeiro, 1000000)
     calculo = SimuladorFinanceiro.calcularMontante(primeiro)

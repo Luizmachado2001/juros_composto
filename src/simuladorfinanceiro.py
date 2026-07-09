@@ -59,6 +59,14 @@ class SimuladorFinanceiro():
             meses+=1
 
             valor_formatado = f"{montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
             print(f"Mês: {meses:02d} | Valor acumulado: R$ {valor_formatado}")
 
+        anos = int(meses / 12)
+        resto = meses % 12
+        
+        print(35 * "-")
+        print("🎯 ALVO ATINGIDO!")
+        print(f"Tempo total: {anos} ano(s) e {resto} mês(es)")
+        print(35 * "-")
         return meses

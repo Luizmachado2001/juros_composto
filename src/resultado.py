@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 class Resultado:
     """
     Representa o relatório de saída de uma simulação financeira.
@@ -19,12 +21,10 @@ class Resultado:
 
     def exibirResumo(self):
         """
-        Gera e exibe um relatório formatado no terminal com os dados do investimento.
-
-        Formata os valores internamente para o padrão de moeda brasileiro (PT-BR)
-        com separadores de milhares por ponto e decimais por vírgula.
+        Gera e exibe um relatório formatado no terminal com os dados do investimento
+        e um gráfico de barras comparativo.
         """
-        # Formatando os valores para o padrão BR antes de exibir
+        # Formatando os valores para o padrão BR antes de exibir no terminal
         montante_br = f"{self.montante_final:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         juros_br = f"{self.total_juros_ganhos:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
@@ -34,3 +34,16 @@ class Resultado:
         print(f"Montante Final:        R$ {montante_br}")
         print(f"Total de Juros Ganhos: R$ {juros_br}")
         print(35 * "=")
+
+        # ---- Correção do Gráfico (Barras) ----
+        categorias = ['Montante Final', 'Juros Ganhos']
+        valores = [self.montante_final, self.total_juros_ganhos]
+
+        # Cria as barras com cores diferentes
+        plt.bar(categorias, valores, color=['#4CAF50', '#FF9800'])
+        
+        plt.title("Comparativo do Rendimento (R$)")
+        plt.ylabel("Valores")
+        
+        # Mostra o gráfico na tela
+        plt.show()

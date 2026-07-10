@@ -35,6 +35,27 @@ class Resultado:
         print(f"Total de Juros Ganhos: R$ {juros_br}")
         print(35 * "=")
 
+        #self.mostrarGrafico()
+
+    def mostrarGrafico(self):
+        """
+        Gera, configura e exibe um gráfico de barras comparativo dos resultados.
+
+        Este método utiliza a biblioteca matplotlib para criar um gráfico de barras
+        com o objetivo de contrastar visualmente o montante final acumulado e o 
+        total de juros ganhos. Cada barra é personalizada com uma cor distinta 
+        para facilitar a diferenciação visual.
+
+        Attributes:
+            categorias (list de str): Rótulos do eixo X ('Montante Final', 'Juros Ganhos').
+            valores (list de float): Os valores financeiros correspondentes a cada categoria.
+
+        Note:
+            Este método depende da biblioteca 'matplotlib.pyplot' importada como 'plt'
+            e assume que o ambiente de execução possui suporte para exibição de 
+            interfaces gráficas (GUI) ao invocar o método `plt.show()`.
+        """
+
         # ---- Correção do Gráfico (Barras) ----
         categorias = ['Montante Final', 'Juros Ganhos']
         valores = [self.montante_final, self.total_juros_ganhos]

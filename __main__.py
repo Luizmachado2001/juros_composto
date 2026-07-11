@@ -2,9 +2,10 @@ from .src import Cenario, SimuladorFinanceiro
 
 def main():
     
-    primeiro = Cenario(100000, 1.2, 400)
+    primeiro = Cenario(1000, 1.2, 200)
     
-    SimuladorFinanceiro.tempoAteAlvo(primeiro, 1000000)
+    SimuladorFinanceiro.simular_juros_compostos_com_aportes(primeiro, 100, 10000)
+    SimuladorFinanceiro.tempoAteAlvo(primeiro, 10000)
     calculo = SimuladorFinanceiro.calcularMontante(primeiro)
     calculo.exibirResumo()
     

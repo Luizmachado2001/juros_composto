@@ -1,4 +1,12 @@
 from .resultado import Resultado
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+from rich import box  # Importado para melhorar o estilo das bordas das tabelas
+
+# Inicializa o console global do Rich
+console = Console()
 
 class SimuladorFinanceiro():
     """
@@ -13,14 +21,6 @@ class SimuladorFinanceiro():
     def calcularMontante(cenario) -> Resultado:
         """
         Calcula o montante final acumulado e o total de juros com base em um cenário.
-
-        Utiliza a fórmula matemática de juros compostos: M = P * (1 + i)^t.
-
-        Args:
-            cenario (Cenario): Objeto contendo os dados de entrada (capital, taxa e tempo).
-
-        Returns:
-            Resultado: Um objeto contendo o montante final e o total de juros acumulados.
         """
         p = cenario.getValorInicial()
         i = cenario.getTaxaJurosMensal()
@@ -30,98 +30,112 @@ class SimuladorFinanceiro():
         primeiro_passo = (primeiro_passo + 1) ** t
 
         segundo_passo = p * primeiro_passo
-
         montante_final = segundo_passo
 
-        return Resultado(montante_final, montante_final-p)
+        return Resultado(montante_final, montante_final - p)
     
     @staticmethod
     def tempoAteAlvo(cenario, alvo) -> int:
         """
-        Simula a evolução mensal do capital até atingir ou ultrapassar o valor alvo.
-
-        Realiza projeções mês a mês aplicando juros compostos sobre o saldo acumulado.
-
-        Args:
-            cenario (Cenario): Objeto com os dados iniciais do investimento.
-            alvo (float): O valor financeiro objetivo que se deseja alcançar.
-
-        Returns:
-            int: A quantidade total de meses necessários para atingir o alvo.
+        Simula la evolución mensual del capital hasta alcanzar o superar el valor objetivo.
+        Incluye la columna de intereses acumulados y diseño de tabla mejorado.
         """
-        montante_atual = cenario.getValorInicial()
+        valor_inicial = cenario.getValorInicial()
+        montante_atual = valor_inicial
         i = cenario.getTaxaJurosMensal() / 100
         meses = 0
 
+        # Tabela melhorada com bordas arredondadas e estilo clean
+        tabela = Table(
+            title="[bold magenta]Evolução do Patrimônio (Sem Aportes)[/bold magenta]", 
+            show_header=True, 
+            header_style="bold cyan",
+            box=box.ROUNDED,
+            border_style="dim"
+        )
+        tabela.add_column("Mês", justify="center", style="dim")
+        tabela.add_column("Valor Acumulado", justify="right", style="green")
+        tabela.add_column("Juros Acumulados", justify="right", style="yellow")  # Nova coluna!
+
         while (montante_atual < alvo):
             juros_do_mes = montante_atual * i
-            montante_atual+=juros_do_mes
-            meses+=1
+            montante_atual += juros_do_mes
+            meses += 1
 
-            valor_formatado = f"{montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            # Juros acumulados sem aporte é apenas o montante atual menos o que começou
+            juros_acumulado = montante_atual - valor_inicial
 
-            print(f"Mês: {meses:02d} | Valor acumulado: R$ {valor_formatado}")
+            valor_formatado = f"R$ {montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            juros_formatado = f"R$ {juros_acumulado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            
+            tabela.add_row(f"{meses:02d}", valor_formatado, juros_formatado)
+
+        console.print(tabela)
 
         anos = int(meses / 12)
         resto = meses % 12
 
-        print(35 * "-")
-        print("🎯 ALVO ATINGIDO!")
-        if resto >= 1:
-            print(f"Tempo total: {anos} ano(s) e {resto} mês(es)")
-        else:
-            print(f"Tempo total: {anos} ano(s)")
-
-        print(35 * "-")
-        print()
+        tempo_texto = f"{anos} ano(s) e {resto} mês(es)" if resto >= 1 else f"{anos} ano(s)"
+        painel_sucesso = Panel(
+            Text(f"Tempo total necessário: {tempo_texto}", style="bold white"),
+            title="[bold green]🎯 ALVO ATINGIDO![/bold green]",
+            expand=False,
+            border_style="green"
+        )
+        console.print("\n", painel_sucesso, "\n")
+        
         return meses
 
     @staticmethod
-    def simular_juros_compostos_com_aportes(cenario, aporte_mensal, alvo):
+    def simular_juros_compostos_com_aportes(cenario, aporte_mensal, alvo) -> int:
         """
-        Simula a evolução mensal de um investimento com aportes até atingir um valor alvo.
-
-        Este método projeta mês a mês o crescimento do patrimônio aplicando a taxa de
-        juros sobre o saldo acumulado e somando o aporte mensal, exibindo o progresso
-        no terminal até que o montante final seja igual ou maior que a meta definida.
-
-        Args:
-            cenario (Cenario): Objeto que contém as configurações iniciais da simulação
-                (deve implementar getValorInicial() e getTaxaJurosMensal()).
-            aporte_mensal (float): O valor financeiro depositado mensalmente.
-            alvo (float): O montante final desejado (meta financeira).
-
-        Returns:
-            int: O total de meses necessários para atingir ou ultrapassar o valor alvo.
-
-        Raises:
-            ValueError: Se o valor inicial e o aporte forem zero com um alvo maior que zero,
-                ou se a taxa de juros for negativa/nula impedindo o crescimento.
+        Simula la evolución mensual de una inversión con aportes hasta alcanzar un valor objetivo.
+        Diseño de tabla mejorado.
         """
         montante_atual = cenario.getValorInicial()
+        total_investido_bolso = cenario.getValorInicial()  
         i = cenario.getTaxaJurosMensal() / 100
         meses = 0
 
+        # Tabela melhorada com bordas arredondadas e estilo clean
+        tabela = Table(
+            title="[bold violet]Evolução do Patrimônio (Com Aportes Mensais)[/bold violet]", 
+            show_header=True, 
+            header_style="bold cyan",
+            box=box.ROUNDED,
+            border_style="dim"
+        )
+        tabela.add_column("Mês", justify="center", style="dim")
+        tabela.add_column("Valor Acumulado", justify="right", style="green")
+        tabela.add_column("Juros Acumulados", justify="right", style="yellow")
+
         while (montante_atual < alvo):
             juros_do_mes = montante_atual * i
-            montante_atual+=juros_do_mes
-            montante_atual+=aporte_mensal
-            meses+=1
+            montante_atual += juros_do_mes
+            montante_atual += aporte_mensal
+            
+            total_investido_bolso += aporte_mensal
+            meses += 1
 
-            valor_formatado = f"{montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            juros_acumulado = montante_atual - total_investido_bolso
 
-            print(f"Mês: {meses:02d} | Valor acumulado: R$ {valor_formatado}")
+            valor_formatado = f"R$ {montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            juros_formatado = f"R$ {juros_acumulado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+            tabela.add_row(f"{meses:02d}", valor_formatado, juros_formatado)
+
+        console.print(tabela)
 
         anos = int(meses / 12)
         resto = meses % 12
 
-        print(35 * "-")
-        print("🎯 ALVO ATINGIDO!")
-        if resto >= 1:
-            print(f"Tempo total: {anos} ano(s) e {resto} mês(es)")
-        else:
-            print(f"Tempo total: {anos} ano(s)")
-
-        print(35 * "-")
-        print()
+        tempo_texto = f"{anos} ano(s) e {resto} mês(es)" if resto >= 1 else f"{anos} ano(s)"
+        painel_sucesso = Panel(
+            Text(f"Tempo total necessário: {tempo_texto}", style="bold white"),
+            title="[bold gold1]🎯 ALVO ATINGIDO COM APORTES![/bold gold1]",
+            expand=False,
+            border_style="green"
+        )
+        console.print("\n", painel_sucesso, "\n")
+        
         return meses

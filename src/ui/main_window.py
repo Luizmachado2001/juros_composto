@@ -9,6 +9,7 @@ from PyQt6.QtGui import QFont, QDoubleValidator, QIntValidator
 from src.core.simuladorfinanceiro import SimuladorFinanceiro
 from src.core.cenario import Cenario
 from src.core.resultado import Resultado
+from src.core.resultado_meta import ResultadoMeta
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -42,14 +43,13 @@ class MainWindow(QMainWindow):
                 font-family: 'Segoe UI', sans-serif;
             }
             QLineEdit:focus {
-                border: 1px solid #00f2fe; /* Foco em Ciano Neon */
+                border: 1px solid #00f2fe; 
                 background-color: #0b0f19;
             }
             QLineEdit::placeholder {
                 color: #334155;
             }
                          
-            /* ================= BOTÃO TECNOLÓGICO HOLOGRÁFICO ================= */
             QPushButton {
                 background-color: rgba(0, 242, 254, 0.05); 
                 color: #00f2fe;                             
@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
         self.card_inputs.setObjectName("card_inputs")
         self.card_inputs_layout = QVBoxLayout(self.card_inputs)
         self.card_inputs_layout.setContentsMargins(40, 40, 40, 40)
-        self.card_inputs_layout.setSpacing(20)
+        self.card_inputs_layout.setSpacing(15) # Spacing um pouco menor já que o bloco vertical cuida do alinhamento
         
         titulo_inputs = QLabel("Dados da Simulação")
         titulo_inputs.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
@@ -101,16 +101,17 @@ class MainWindow(QMainWindow):
         titulo_inputs.setStyleSheet("color: #ffffff; margin-bottom: 10px; letter-spacing: 0.5px; font-weight: 800;")
         self.card_inputs_layout.addWidget(titulo_inputs)
         
-        self.input_capital = self.criar_campo_entrada("Capital Inicial", "R$ 0,00", self.card_inputs_layout, real=True)
-        self.input_aporte = self.criar_campo_entrada("Aporte Mensal", "R$ 0,00", self.card_inputs_layout, real=True)
-        self.input_taxa = self.criar_campo_entrada("Taxa de Juros Anual", "0.00 %", self.card_inputs_layout, real=True)
-        self.input_inflacao = self.criar_campo_entrada("Taxa de Inflação Anual", "0.00 %", self.card_inputs_layout, real=True)
-        self.input_tempo = self.criar_campo_entrada("Período de Tempo (Opcional para Alvo)", "Meses desejados", self.card_inputs_layout, real=False)
-        self.input_alvo = self.criar_campo_entrada("Valor Alvo Desejado (Opcional)", "Quanto quer acumular? Ex: 1000000", self.card_inputs_layout, real=True)
+        # Ajuste estratégico: Unidades no próprio placeholder/label e alinhamento em bloco vertical
+        self.input_capital = self.criar_campo_entrada("CAPITAL INICIAL", "R$ 0,00", self.card_inputs_layout, real=True)
+        self.input_aporte = self.criar_campo_entrada("APORTE MENSAL", "R$ 0,00", self.card_inputs_layout, real=True)
+        self.input_taxa = self.criar_campo_entrada("TAXA DE JUROS ANUAL (%)", "0.00", self.card_inputs_layout, real=True)
+        self.input_inflacao = self.criar_campo_entrada("TAXA DE INFLAÇÃO ANUAL (%)", "0.00", self.card_inputs_layout, real=True)
+        self.input_tempo = self.criar_campo_entrada("PERÍODO DE TEMPO (OPCIONAL PARA ALVO)", "Meses desejados", self.card_inputs_layout, real=False)
+        self.input_alvo = self.criar_campo_entrada("VALOR ALVO DESEJADO (OPCIONAL)", "Quanto quer acumular em poder de compra?", self.card_inputs_layout, real=True)
         
         layout_botoes = QHBoxLayout()
         layout_botoes.setSpacing(15)
-        layout_botees_margins = layout_botoes.setContentsMargins(0, 15, 0, 0)
+        layout_botoes.setContentsMargins(0, 15, 0, 0)
         
         self.botao_calcular = QPushButton("Simular por Tempo")
         self.botao_calcular.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -144,14 +145,13 @@ class MainWindow(QMainWindow):
         self.lbl_total_investido = self.criar_campo_resultado("Total Investido")
         self.lbl_total_juros = self.criar_campo_resultado("Rendimentos Brutos")
         self.lbl_montante_final = self.criar_campo_resultado("Montante Acumulado")
-        self.lbl_compra_real = self.criar_campo_resultado("Poder de Compra Real") # <-- Nova linha adicionada para clareza
+        self.lbl_compra_real = self.criar_campo_resultado("Poder de Compra Real")
                  
         divisor = QFrame()
         divisor.setFrameShape(QFrame.Shape.HLine)
         divisor.setStyleSheet("background-color: #1e293b; max-height: 1px; margin: 10px 0px;")
         self.card_layout.addWidget(divisor)
         
-        # Painel dinâmico inferior (Fica reservado para o destaque principal)
         self.lbl_poder_compra_titulo = QLabel("Poder de Compra Real\n(Ajustado à Inflação)")
         self.lbl_poder_compra_titulo.setStyleSheet("color: #475569; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;")
         
@@ -170,15 +170,24 @@ class MainWindow(QMainWindow):
         self.layout_direito.addStretch()
 
     def criar_campo_entrada(self, label_text, placeholder, layout_destino, real=True):
-        container = QVBoxLayout()
-        container.setSpacing(8)
+        # MUDANÇA CRUCIAL: Agora usamos layout VERTICAL para empilhar o texto e o input.
+        container_bloco = QVBoxLayout()
+        container_bloco.setSpacing(6) # Espaço sutil entre o rótulo e a caixa de texto
+        container_bloco.setContentsMargins(0, 2, 0, 2)
                  
         label = QLabel(label_text)
-        label.setStyleSheet("font-weight: 700; color: #475569; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;")
+        label.setStyleSheet("""
+            font-weight: 700; 
+            color: #475569; 
+            font-size: 10px; 
+            text-transform: uppercase; 
+            letter-spacing: 1.2px;
+            background: transparent;
+        """)
                  
         line_edit = QLineEdit()
         line_edit.setPlaceholderText(placeholder)
-        line_edit.setMinimumHeight(46)
+        line_edit.setMinimumHeight(44)
                  
         if real:
             validador = QDoubleValidator(0.0, 999999999.0, 2)
@@ -187,9 +196,9 @@ class MainWindow(QMainWindow):
         else:
             line_edit.setValidator(QIntValidator(1, 1200))
                      
-        container.addWidget(label)
-        container.addWidget(line_edit)
-        layout_destino.addLayout(container)
+        container_bloco.addWidget(label)
+        container_bloco.addWidget(line_edit)
+        layout_destino.addLayout(container_bloco)
         return line_edit
         
     def criar_campo_resultado(self, label_text):
@@ -256,18 +265,16 @@ class MainWindow(QMainWindow):
                 return
 
             simulador = SimuladorFinanceiro()
-            res = simulador.calcular_tempo_ate_alvo(capital, aporte, taxa, inflacao, alvo)
+            res: ResultadoMeta = simulador.calcular_tempo_ate_alvo(capital, aporte, taxa, inflacao, alvo)
             
-            # Alimenta os labels para mostrar exatamente o que aconteceu
-            self.lbl_total_investido.setText(self.formatar_moeda(res["total_investido"]))
-            self.lbl_total_juros.setText(self.formatar_moeda(res["total_juros"]))
-            self.lbl_montante_final.setText(self.formatar_moeda(res["montante_final"]))
-            self.lbl_compra_real.setText(self.formatar_moeda(res["poder_compra_real"])) # Mostrará os R$ 1.000.000,00 reais!
+            self.lbl_total_investido.setText(self.formatar_moeda(res.total_investido))
+            self.lbl_total_juros.setText(self.formatar_moeda(res.total_juros))
+            self.lbl_montante_final.setText(self.formatar_moeda(res.montante_final))
+            self.lbl_compra_real.setText(self.formatar_moeda(res.poder_compra_real))
             
-            # Destaca o tempo necessário no painel inferior grande
-            self.lbl_poder_compra_titulo.setText("Tempo Necessário Estimado\n(Poder de Compra Real)")
+            self.lbl_poder_compra_titulo.setText("Tempo até atingir o Alvo\n(Descontada a Inflação)")
             self.lbl_poder_compra.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-            self.lbl_poder_compra.setText(res["tempo_texto"])
+            self.lbl_poder_compra.setText(res.tempo_texto)
             
         except Exception as e:
             QMessageBox.critical(self, "Erro no Cálculo", f"Ocorreu um erro ao calcular o tempo até o alvo: {str(e)}")

@@ -3,19 +3,20 @@ from rich.console import Console
 from rich.rule import Rule
 
 def main():
+
+    primeiro = Cenario(100000, 1.2, 12)      
     # Inicializa o console para criar divisores bonitos entre os testes
     console = Console()
     
-    # Instancia o cenário: R$ 1.000 iniciais, 1.2% de taxa mensal, por 200 meses
-    primeiro = Cenario(100000, 1.2, 200)
+    # Instancia o cenário: R$ 1.000 iniciais, 1.2% de taxa mensal, por 200 mese
     
     # --- SIMULAÇÃO 1: Meta Com Aportes ---
-    console.print(Rule("[bold violet]1. Simulação Com Aportes Mensais[/bold violet]"))
-    SimuladorFinanceiro.simular_juros_compostos_com_aportes(primeiro, 100, 1000000)
+   # console.print(Rule("[bold violet]1. Simulação Com Aportes Mensais[/bold violet]"))
+   # SimuladorFinanceiro.simular_juros_compostos_com_aportes(primeiro, 200, 1000000)
     
     # --- SIMULAÇÃO 2: Meta Sem Aportes ---
-    console.print(Rule("[bold magenta]2. Simulação Sem Aportes (Apenas Juros)[/bold magenta]"))
-    SimuladorFinanceiro.tempoAteAlvo(primeiro, 1000000)
+    #console.print(Rule("[bold magenta]2. Simulação Sem Aportes (Apenas Juros)[/bold magenta]"))
+    #SimuladorFinanceiro.tempoAteAlvo(primeiro, 1000000)
     
     # --- SIMULAÇÃO 3: Cálculo Fixo e Resumo Visual ---
     console.print(Rule("[bold blue]3. Resumo Fixo do Cenário (200 meses)[/bold blue]"))

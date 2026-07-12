@@ -1,122 +1,98 @@
+from typing import Optional, List
 import matplotlib.pyplot as plt
-from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-
-# Inicializa o console global do Rich
-console = Console()
+import matplotlib.ticker as ticker
 
 class Resultado:
-    """
-    Representa o relatório de saída de uma simulação financeira.
+    """Representa o resultado final consolidado de uma simulação financeira.
 
-    Esta classe armazena os valores calculados finais e gerencia a lógica de 
-    formatação e exibição visual do resumo do investimento para o usuário.
+    Esta classe armazena os valores finais acumulados, o lucro em juros, 
+    e opcionalmente o histórico passo a passo para renderização de gráficos 
+    de evolução patrimonial.
+
+    Attributes:
+        montante_final (float): O valor total acumulado (poder de compra real).
+        total_juros_ganhos (float): O lucro puro em juros reais.
+        historico_meses (list[int]): Lista opcional com os índices dos meses (para gráfico).
+        historico_saldos (list[float]): Lista opcional com os saldos mês a mês (para gráfico).
     """
 
-    def __init__(self, montante_final, total_juros_ganhos):
-        """
-        Inicializa o objeto de resultado com os valores calculados.
+    def __init__(
+        self, 
+        montante_final: float, 
+        total_juros_ganhos: float, 
+        historico_meses: Optional[List[int]] = None, 
+        historico_saldos: Optional[List[float]] = None
+    ):
+        """Inicializa um objeto Resultado com tipagem opcional estrita (PEP 484).
 
         Args:
-            montante_final (float): O valor total acumulado ao fim do período.
-            total_juros_ganhos (float): O valor total de juros gerados na simulação.
+            montante_final (float): O montante final acumulado (R$).
+            total_juros_ganhos (float): O total de juros reais ganhos (R$).
+            historico_meses (list[int], optional): Lista de meses para o gráfico. Defaults to None.
+            historico_saldos (list[float], optional): Lista de saldos para o gráfico. Defaults to None.
         """
         self.montante_final = montante_final
         self.total_juros_ganhos = total_juros_ganhos
-
-    def exibirResumo(self, mostrar_grafico=True):
-        """
-        Gera e exibe um relatório formatado e elegante no terminal usando a biblioteca Rich.
-
-        Args:
-            mostrar_grafico (bool, opcional): Define se o gráfico de barras comparativo
-                deve ser exibido na tela após o resumo textual. O padrão é True.
-        """
-        # Formatando os valores para o padrão BR
-        montante_br = f"R$ {self.montante_final:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        juros_br = f"R$ {self.total_juros_ganhos:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
-        # Construindo o texto estilizado
-        texto_resumo = Text()
-        texto_resumo.append("Montante Final:        ", style="bold white")
-        texto_resumo.append(f"{montante_br}\n", style="bold green")
-        texto_resumo.append("Total de Juros Ganhos: ", style="bold white")
-        texto_resumo.append(f"{juros_br}", style="bold yellow")
+        # Garante que as listas sejam listas vazias se None for passado, 
+        # mantendo a consistência do tipo para o restante da classe.
+        self.historico_meses: List[int] = historico_meses or []
+        self.historico_saldos: List[float] = historico_saldos or []
 
-        # Criando o painel moderno combinando com o resto do sistema
-        painel = Panel(
-            texto_resumo, 
-            title="[bold blue]RESUMO DO INVESTIMENTO[/bold blue]", 
-            expand=False, 
-            border_style="blue"
-        )
+    def exibirResumo(self):
+        """Dispara a exibição da interface gráfica se houver histórico de dados.
+
+        Este método verifica se as listas de histórico foram preenchidas (não estão vazias).
+        Se preenchidas, assume-se que o cálculo gerou uma evolução temporal compatível 
+        com um gráfico de linha.
+        """
+        if self.historico_meses and self.historico_saldos:
+            self.mostrarGraficoLinha()
+
+    def mostrarGraficoLinha(self):
+        """Gera um gráfico de linha elegante mostrando a curva exponencial do patrimônio.
         
-        console.print("\n")
-        console.print(painel)
-        console.print("\n")
-
-        # Mantendo o controle dinâmico (ou seu modo mecânico via comentário)
-        if mostrar_grafico:
-            self.mostrarGrafico()
-
-    def mostrarGrafico(self):
+        Este gráfico utiliza formatação profissional do Matplotlib para exibir a evolução 
+        real do poder de compra ao longo do tempo.
         """
-        Gera, configura e exibe um gráfico de linha e área moderno e otimizado.
+        # Configuração de tema limpo e profissional
+        plt.style.use('default')
+        fig, ax = plt.subplots(figsize=(8, 5), facecolor='#ffffff')
+        ax.set_facecolor('#f8f9fa')  # Fundo levemente cinza para destacar a linha
 
-        Este método utiliza a biblioteca matplotlib para criar uma curva de crescimento,
-        aplicando um estilo moderno (grid sutil, preenchimento gradiente e marcadores)
-        que facilita a visualização do efeito exponencial do investimento.
-        """
-        import matplotlib.pyplot as plt
-        # Importação explícita do módulo de formatação para corrigir o aviso do Pylance
-        import matplotlib.ticker as ticker
-
-        # Ativa um estilo visual mais limpo e moderno
-        plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
-
-        # Cria a figura com proporções elegantes (Largura x Altura)
-        fig, ax = plt.subplots(figsize=(8, 5))
-
-        categorias = ['Capital Inicial', 'Juros Ganhos', 'Montante Final']
-        # Calculando o capital inicial para fins de linha evolutiva básica
+        # Linha principal do Patrimônio
+        ax.plot(self.historico_meses, self.historico_saldos, color='#00b4d8', linewidth=2.5, label='Evolução do Patrimônio Real')
+        
+        # Linha estável do Capital Inicial do bolso (Tracejada)
         capital_inicial = self.montante_final - self.total_juros_ganhos
-        valores = [capital_inicial, self.total_juros_ganhos, self.montante_final]
+        ax.axhline(y=capital_inicial, color='#e63946', linestyle='--', linewidth=1.5, label='Capital Investido Inicial')
 
-        # 1. Plota a linha principal de evolução
-        ax.plot(categorias, valores, color='#2ecc71', marker='o', linewidth=3, markersize=8, label='Evolução do Patrimônio')
-
-        # 2. Cria um preenchimento sutil abaixo da linha (efeito área/gradiente)
-        ax.fill_between(categorias, valores, color='#2ecc71', alpha=0.15)
-
-        # 3. Customização de Títulos e Rótulos (Fontes limpas e sem poluição)
-        ax.set_title("Projeção e Crescimento do Capital", fontsize=14, pad=15, fontweight='bold', color='#2c3e50')
-        ax.set_ylabel("Valores (R$)", fontsize=11, labelpad=10, color='#34495e')
+        # Customização de Títulos e Eixos
+        ax.set_title("A Curva Exponencial do seu Dinheiro (Descontada a Inflação)", fontsize=12, pad=20, fontweight='bold', color='#1d3557')
+        ax.set_xlabel("Tempo (Meses)", fontsize=10, labelpad=10, color='#1d3557')
+        ax.set_ylabel("Poder de Compra Real", fontsize=10, labelpad=10, color='#1d3557')
         
-        # 4. Formatação corrigida utilizando o módulo oficial 'ticker'
+        # Formatação do eixo Y para o padrão R$ brasileiro (milhares/decimais)
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, loc: f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")))
+        ax.tick_params(colors='#4a4a4a', labelsize=9)
 
-        # 5. Adiciona rótulos de dados diretamente no topo de cada ponto
-        for i, v in enumerate(valores):
-            v_formatado = f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            ax.annotate(v_formatado, 
-                        (categorias[i], valores[i]),
-                        textcoords="offset points", 
-                        xytext=(0,10), 
-                        ha='center', 
-                        fontsize=9, 
-                        fontweight='bold',
-                        color='#2c3e50')
+        # Destaca o ponto final da linha com uma bolinha e o valor escrito (anotação)
+        ax.scatter(self.historico_meses[-1], self.historico_saldos[-1], color='#0077b6', s=50, zorder=5)
+        v_final_formatado = f"R$ {self.montante_final:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        ax.annotate(v_final_formatado,
+                    xy=(self.historico_meses[-1], self.historico_saldos[-1]),
+                    xytext=(-15, 12),  
+                    textcoords="offset points",
+                    ha='right', va='bottom', fontsize=10, fontweight='bold', color='#0077b6',
+                    bbox=dict(boxstyle="round,pad=0.3", fc="#e2eafc", ec="none", alpha=0.8))
 
-        # 6. Suaviza as linhas de grade para não poluir o visual
-        ax.grid(True, linestyle='--', alpha=0.5, color='#bdc3c7')
+        # Estética das grades e legendas
+        ax.grid(True, linestyle=':', alpha=0.6, color='#b2b2b2')
+        ax.legend(loc='upper left', frameon=True, facecolor='#ffffff', edgecolor='none', fontsize=9)
         
-        # Remove bordas desnecessárias da janela do gráfico (Clean Design)
+        # Oculta as bordas (spines) externa do gráfico
         for spine in ['top', 'right', 'left', 'bottom']:
             ax.spines[spine].set_visible(False)
 
-        # Ajusta as margens para o texto não ser cortado
         plt.tight_layout()
-        
-        # Mostra o gráfico na tela
         plt.show()

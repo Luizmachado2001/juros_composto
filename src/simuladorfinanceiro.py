@@ -1,141 +1,150 @@
-from .resultado import Resultado
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
-from rich import box  # Importado para melhorar o estilo das bordas das tabelas
+from rich.columns import Columns
+from rich import box
+from .cenario import Cenario
+from .resultado import Resultado
 
-# Inicializa o console global do Rich
-console = Console()
-
-class SimuladorFinanceiro():
-    """
-    Mecanismo de cálculo para operações financeiras de juros compostos.
-
-    Esta classe fornece métodos estáticos utilitários para simular o crescimento
-    de capital ao longo do tempo e calcular projeções com base em metas financeiras.
-    Não necessita de instanciação.
-    """
+class SimuladorFinanceiro:
+    """Motor de cálculo financeiro responsável pelas projeções e formatação no terminal."""
 
     @staticmethod
-    def calcularMontante(cenario) -> Resultado:
-        """
-        Calcula o montante final acumulado e o total de juros com base em um cenário.
-        """
+    def _formatar_moeda(valor: float) -> str:
+        """Auxiliar para formatar valores numéricos no padrão de moeda brasileiro R$."""
+        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    @staticmethod
+    def _formatar_tempo(meses: int) -> str:
+        """Converte uma contagem de meses bruta em uma string legível de anos e meses."""
+        if meses == 0:
+            return "Início"
+        anos = meses // 12
+        meses_restantes = meses % 12
+        
+        partes = []
+        if anos > 0:
+            partes.append(f"{anos} ano{'s' if anos > 1 else ''}")
+        if meses_restantes > 0:
+            partes.append(f"{meses_restantes} mê{'ses' if meses_restantes > 1 else 's'}")
+            
+        return " e ".join(partes)
+
+    @staticmethod
+    def calcularMontante(cenario: Cenario, inflacao_mensal: float = 0.35) -> Resultado:
+        """Calcula o montante fixo do cenário descontando a inflação pela fórmula de Fisher."""
         p = cenario.getValorInicial()
-        i = cenario.getTaxaJurosMensal()
+        i_nominal = cenario.getTaxaJurosMensal()
         t = cenario.getTempoMeses()
 
-        primeiro_passo = (i / 100)
-        primeiro_passo = (primeiro_passo + 1) ** t
+        i_real = (((1 + i_nominal / 100) / (1 + inflacao_mensal / 100)) - 1)
 
-        segundo_passo = p * primeiro_passo
-        montante_final = segundo_passo
+        historico_meses = list(range(t + 1))
+        historico_saldos = [p * ((1 + i_real) ** m) for m in historico_meses]
 
-        return Resultado(montante_final, montante_final - p)
-    
+        montante_real = historico_saldos[-1]
+        juros_reais = montante_real - p
+
+        # Exibição executiva do resumo fixo diretamente no terminal
+        console = Console()
+        
+        v_inicial_f = SimuladorFinanceiro._formatar_moeda(p)
+        v_final_f = SimuladorFinanceiro._formatar_moeda(montante_real)
+        juros_f = SimuladorFinanceiro._formatar_moeda(juros_reais)
+        
+        # Painel lateral clean e moderno para o sumário de dados
+        paineis = [
+            Panel(f"[dim]Aporte Inicial[/dim]\n[bold white]{v_inicial_f}[/bold white]", border_style="dim"),
+            Panel(f"[dim]Rendimento Real Total[/dim]\n[bold gold3]{juros_f}[/bold gold3]", border_style="dim"),
+            Panel(f"[dim]Poder de Compra Final[/dim]\n[bold green]{v_final_f}[/bold green]", border_style="green")
+        ]
+        
+        console.print("\n[bold white]EXTRATO DE PROJEÇÃO REAL PATRIMONIAL[/bold white]")
+        console.print(f"[dim]Horizonte temporal: {SimuladorFinanceiro._formatar_tempo(t)} | Taxa real calculada: {i_real*100:.4f}% ao mês[/dim]\n")
+        console.print(Columns(paineis))
+        console.print("")
+
+        return Resultado(montante_real, juros_reais, historico_meses, historico_saldos)
+
     @staticmethod
-    def tempoAteAlvo(cenario, alvo) -> int:
-        """
-        Simula la evolución mensual del capital hasta alcanzar o superar el valor objetivo.
-        Incluye la columna de intereses acumulados y diseño de tabla mejorado.
-        """
-        valor_inicial = cenario.getValorInicial()
-        montante_atual = valor_inicial
-        i = cenario.getTaxaJurosMensal() / 100
+    def tempoAteAlvo(cenario: Cenario, alvo: float, inflacao_mensal: float = 0.35) -> int:
+        """Calcula o tempo sem aportes com uma tabela executiva minimalista."""
+        console = Console()
+        montante_atual = cenario.getValorInicial()
+        i_nominal = cenario.getTaxaJurosMensal()
+        i_real = (((1 + i_nominal / 100) / (1 + inflacao_mensal / 100)) - 1)
         meses = 0
 
-        # Tabela melhorada com bordas arredondadas e estilo clean
         tabela = Table(
-            title="[bold magenta]Evolução do Patrimônio (Sem Aportes)[/bold magenta]", 
-            show_header=True, 
-            header_style="bold cyan",
-            box=box.ROUNDED,
-            border_style="dim"
+            title=f"\n[bold white]CRONOGRAMA DE EVOLUÇÃO ATÉ O ALVO[/bold white]\n[dim]Alvo em poder de compra de hoje: {SimuladorFinanceiro._formatar_moeda(alvo)}[/dim]",
+            title_justify="left",
+            box=box.MINIMAL,
+            header_style="bold steel_blue1",
+            show_lines=False
         )
-        tabela.add_column("Mês", justify="center", style="dim")
-        tabela.add_column("Valor Acumulado", justify="right", style="green")
-        tabela.add_column("Juros Acumulados", justify="right", style="yellow")  # Nova coluna!
+        tabela.add_column("Período Decorrido", justify="left", width=25)
+        tabela.add_column("Saldo Real Corrigido", justify="right", style="bold green", width=25)
 
-        while (montante_atual < alvo):
-            juros_do_mes = montante_atual * i
-            montante_atual += juros_do_mes
+        tabela.add_row(
+            SimuladorFinanceiro._formatar_tempo(meses), 
+            SimuladorFinanceiro._formatar_moeda(montante_atual)
+        )
+
+        while montante_atual < alvo:
             meses += 1
-
-            # Juros acumulados sem aporte é apenas o montante atual menos o que começou
-            juros_acumulado = montante_atual - valor_inicial
-
-            valor_formatado = f"R$ {montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            juros_formatado = f"R$ {juros_acumulado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            montante_atual += (montante_atual * i_real)
             
-            tabela.add_row(f"{meses:02d}", valor_formatado, juros_formatado)
+            # Print anualizado ou do fechamento do alvo
+            if meses % 12 == 0 or montante_atual >= alvo:
+                tabela.add_row(
+                    SimuladorFinanceiro._formatar_tempo(meses), 
+                    SimuladorFinanceiro._formatar_moeda(montante_atual)
+                )
+                
+            if meses >= 1200: 
+                break
 
         console.print(tabela)
-
-        anos = int(meses / 12)
-        resto = meses % 12
-
-        tempo_texto = f"{anos} ano(s) e {resto} mês(es)" if resto >= 1 else f"{anos} ano(s)"
-        painel_sucesso = Panel(
-            Text(f"Tempo total necessário: {tempo_texto}", style="bold white"),
-            title="[bold green]🎯 ALVO ATINGIDO![/bold green]",
-            expand=False,
-            border_style="green"
-        )
-        console.print("\n", painel_sucesso, "\n")
-        
+        console.print("")
         return meses
 
     @staticmethod
-    def simular_juros_compostos_com_aportes(cenario, aporte_mensal, alvo) -> int:
-        """
-        Simula la evolución mensual de una inversión con aportes hasta alcanzar un valor objetivo.
-        Diseño de tabla mejorado.
-        """
+    def simular_juros_compostos_com_aportes(cenario: Cenario, aporte_mensal: float, alvo: float, inflacao_mensal: float = 0.35) -> int:
+        """Simula a evolução real com aportes periódicos exibindo tabela limpa e corporativa."""
+        console = Console()
         montante_atual = cenario.getValorInicial()
-        total_investido_bolso = cenario.getValorInicial()  
-        i = cenario.getTaxaJurosMensal() / 100
+        i_nominal = cenario.getTaxaJurosMensal()
+        i_real = (((1 + i_nominal / 100) / (1 + inflacao_mensal / 100)) - 1)
         meses = 0
 
-        # Tabela melhorada com bordas arredondadas e estilo clean
         tabela = Table(
-            title="[bold violet]Evolução do Patrimônio (Com Aportes Mensais)[/bold violet]", 
-            show_header=True, 
-            header_style="bold cyan",
-            box=box.ROUNDED,
-            border_style="dim"
+            title=f"\n[bold white]EFEITO DOS APORTES MENSAIS RECORRENTES[/bold white]\n[dim]Aporte mensal contínuo: {SimuladorFinanceiro._formatar_moeda(aporte_mensal)}[/dim]",
+            title_justify="left",
+            box=box.MINIMAL,
+            header_style="bold plum1",
+            show_lines=False
         )
-        tabela.add_column("Mês", justify="center", style="dim")
-        tabela.add_column("Valor Acumulado", justify="right", style="green")
-        tabela.add_column("Juros Acumulados", justify="right", style="yellow")
+        tabela.add_column("Período Decorrido", justify="left", width=25)
+        tabela.add_column("Saldo Real Acumulado", justify="right", style="bold green", width=25)
 
-        while (montante_atual < alvo):
-            juros_do_mes = montante_atual * i
-            montante_atual += juros_do_mes
-            montante_atual += aporte_mensal
-            
-            total_investido_bolso += aporte_mensal
+        tabela.add_row(
+            SimuladorFinanceiro._formatar_tempo(meses), 
+            SimuladorFinanceiro._formatar_moeda(montante_atual)
+        )
+
+        while montante_atual < alvo:
             meses += 1
+            montante_atual += (montante_atual * i_real) + aporte_mensal
+            
+            if meses % 12 == 0 or montante_atual >= alvo:
+                tabela.add_row(
+                    SimuladorFinanceiro._formatar_tempo(meses), 
+                    SimuladorFinanceiro._formatar_moeda(montante_atual)
+                )
 
-            juros_acumulado = montante_atual - total_investido_bolso
-
-            valor_formatado = f"R$ {montante_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            juros_formatado = f"R$ {juros_acumulado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-            tabela.add_row(f"{meses:02d}", valor_formatado, juros_formatado)
+            if meses >= 1200:
+                break
 
         console.print(tabela)
-
-        anos = int(meses / 12)
-        resto = meses % 12
-
-        tempo_texto = f"{anos} ano(s) e {resto} mês(es)" if resto >= 1 else f"{anos} ano(s)"
-        painel_sucesso = Panel(
-            Text(f"Tempo total necessário: {tempo_texto}", style="bold white"),
-            title="[bold gold1]🎯 ALVO ATINGIDO COM APORTES![/bold gold1]",
-            expand=False,
-            border_style="green"
-        )
-        console.print("\n", painel_sucesso, "\n")
-        
+        console.print("")
         return meses
